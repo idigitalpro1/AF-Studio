@@ -76,7 +76,7 @@ export function Podcast() {
 
       // 2. Generate Audio
       const audioResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
+        model: "gemini-3.1-flash-tts-preview",
         contents: [{ parts: [{ text: generatedScript }] }],
         config: {
           responseModalities: [Modality.AUDIO],

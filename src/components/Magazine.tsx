@@ -302,11 +302,12 @@ const LAYOUT_PRESETS = [
   }
 ];
 
-const EditableTextWrapper = ({ field, currentStyle, children, onClick, className = '' }: { 
+const EditableTextWrapper = ({ field, currentStyle, children, onClick, onDelete, className = '' }: { 
   field: 'headline' | 'subheadline' | 'quote';
   currentStyle: React.CSSProperties;
   children: React.ReactNode;
   onClick: (e: React.MouseEvent) => void;
+  onDelete?: () => void;
   className?: string;
 }) => {
   const styledChildren = React.Children.map(children, (child) => {
@@ -364,13 +365,28 @@ const EditableTextWrapper = ({ field, currentStyle, children, onClick, className
       className={`group/editable cursor-pointer relative hover:ring-1 hover:ring-dashed hover:ring-amber-500/70 p-0.5 rounded transition-all pointer-events-auto select-none ${className}`}
       title={`Click to customize ${field}`}
     >
-      {/* Visual edit overlay tag shown on hover (ignored when converting to image) */}
-      <span 
+      {/* Visual edit overlay tag and delete option shown on hover (ignored when converting to image) */}
+      <div 
         data-html2canvas-ignore="true" 
-        className="absolute -top-4 left-1 opacity-0 group-hover/editable:opacity-100 bg-amber-500 text-white text-[7.5px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shadow z-[60] transition-opacity pointer-events-none whitespace-nowrap leading-none"
+        className="absolute -top-5 left-1 opacity-0 group-hover/editable:opacity-100 flex items-center bg-zinc-900 border border-zinc-800 rounded shadow-lg z-[60] transition-opacity pointer-events-auto divide-x divide-zinc-800 text-[8px] font-sans font-bold uppercase tracking-wider"
       >
-        ✍️ Custom {field}
-      </span>
+        <span className="text-amber-500 px-2 py-0.5 whitespace-nowrap leading-none">
+          ✍️ Custom {field}
+        </span>
+        {onDelete && (
+          <button
+            type="button"
+            title={`Delete/Hide ${field}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="px-2 py-0.5 text-red-400 hover:text-red-300 hover:bg-zinc-800 transition-colors cursor-pointer font-bold leading-none"
+          >
+            ✕
+          </button>
+        )}
+      </div>
       {styledChildren}
     </div>
   );
@@ -384,6 +400,10 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
   const [aspect, setAspect] = useState<'a4' | 'square' | 'vertical'>('a4');
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
+  const [isHeadlineVisible, setIsHeadlineVisible] = useState(true);
+  const [isSubheadlineVisible, setIsSubheadlineVisible] = useState(true);
+  const [isQuoteVisible, setIsQuoteVisible] = useState(true);
+
   const applyLayoutPreset = (presetId: string) => {
     const preset = LAYOUT_PRESETS.find(p => p.id === presetId);
     if (!preset) return;
@@ -391,6 +411,11 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
     setActivePreset(presetId);
     setSelectedMagazine(preset.magazine);
     setIsLightPhoto(preset.isLightPhoto);
+
+    // Ensure all blocks are visible with preset apply
+    setIsHeadlineVisible(true);
+    setIsSubheadlineVisible(true);
+    setIsQuoteVisible(true);
 
     // Headline typography
     setHeadlineFont(preset.headlineFont);
@@ -817,21 +842,27 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
               
               <div className={`absolute ${aspect === 'square' ? 'top-[30%] left-6 gap-4' : 'top-[40%] left-8 gap-10'} flex flex-col max-w-[200px]`}>
                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
-                  <EditableTextWrapper 
-                    field="headline" 
-                    currentStyle={getCustomTextStyle('headline')}
-                    onClick={() => setEditingField('headline')}
-                  >
-                    <h3 className={`${textColor} font-bold text-xl tracking-widest mb-2 uppercase leading-tight`} style={{ textShadow: shadow }}>{headline}</h3>
-                  </EditableTextWrapper>
-                  <EditableTextWrapper 
-                    field="subheadline" 
-                    currentStyle={getCustomTextStyle('subheadline')}
-                    onClick={() => setEditingField('subheadline')}
-                    className="mt-1"
-                  >
-                    <p className={`${accentColor} text-sm italic leading-snug`} style={{ textShadow: shadow }}>{subheadline}</p>
-                  </EditableTextWrapper>
+                  {isHeadlineVisible && (
+                    <EditableTextWrapper 
+                      field="headline" 
+                      currentStyle={getCustomTextStyle('headline')}
+                      onClick={() => setEditingField('headline')}
+                      onDelete={() => setIsHeadlineVisible(false)}
+                    >
+                      <h3 className={`${textColor} font-bold text-xl tracking-widest mb-2 uppercase leading-tight`} style={{ textShadow: shadow }}>{headline}</h3>
+                    </EditableTextWrapper>
+                  )}
+                  {isSubheadlineVisible && (
+                    <EditableTextWrapper 
+                      field="subheadline" 
+                      currentStyle={getCustomTextStyle('subheadline')}
+                      onClick={() => setEditingField('subheadline')}
+                      onDelete={() => setIsSubheadlineVisible(false)}
+                      className="mt-1"
+                    >
+                      <p className={`${accentColor} text-sm italic leading-snug`} style={{ textShadow: shadow }}>{subheadline}</p>
+                    </EditableTextWrapper>
+                  )}
                 </motion.div>
                 {aspect !== 'square' && (
                   <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
@@ -854,19 +885,22 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.7 }}
                 >
-                  <EditableTextWrapper 
-                    field="quote" 
-                    currentStyle={getCustomTextStyle('quote')}
-                    onClick={() => setEditingField('quote')}
-                    className="inline-block"
-                  >
-                    <p 
-                      className={`${textColor} text-lg md:text-xl leading-snug italic`} 
-                      style={{ textShadow: shadow }}
+                  {isQuoteVisible && (
+                    <EditableTextWrapper 
+                      field="quote" 
+                      currentStyle={getCustomTextStyle('quote')}
+                      onClick={() => setEditingField('quote')}
+                      onDelete={() => setIsQuoteVisible(false)}
+                      className="inline-block"
                     >
-                      {quote}
-                    </p>
-                  </EditableTextWrapper>
+                      <p 
+                        className={`${textColor} text-lg md:text-xl leading-snug italic`} 
+                        style={{ textShadow: shadow }}
+                      >
+                        {quote}
+                      </p>
+                    </EditableTextWrapper>
+                  )}
                 </motion.div>
               </div>
             </>
@@ -898,21 +932,27 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
  
               <div className={`absolute ${aspect === 'square' ? 'top-[35%] left-5 gap-4' : 'top-[42%] left-6 gap-6'} flex flex-col max-w-[220px]`}>
                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }} className={`border-l-2 ${isLightPhoto ? 'border-zinc-950' : 'border-white'} pl-4`}>
-                  <EditableTextWrapper
-                    field="headline"
-                    currentStyle={getCustomTextStyle('headline')}
-                    onClick={() => setEditingField('headline')}
-                  >
-                    <h3 className={`font-serif uppercase tracking-widest leading-tight mb-2 ${textColor} ${aspect === 'square' ? 'text-xl' : 'text-2xl'}`} style={{ textShadow: shadow }}>{headline}</h3>
-                  </EditableTextWrapper>
-                  <EditableTextWrapper
-                    field="subheadline"
-                    currentStyle={getCustomTextStyle('subheadline')}
-                    onClick={() => setEditingField('subheadline')}
-                    className="mt-1"
-                  >
-                    <p className={`font-sans text-xs uppercase tracking-widest ${accentColor} leading-relaxed`} style={{ textShadow: shadow }}>{subheadline}</p>
-                  </EditableTextWrapper>
+                  {isHeadlineVisible && (
+                    <EditableTextWrapper
+                      field="headline"
+                      currentStyle={getCustomTextStyle('headline')}
+                      onClick={() => setEditingField('headline')}
+                      onDelete={() => setIsHeadlineVisible(false)}
+                    >
+                      <h3 className={`font-serif uppercase tracking-widest leading-tight mb-2 ${textColor} ${aspect === 'square' ? 'text-xl' : 'text-2xl'}`} style={{ textShadow: shadow }}>{headline}</h3>
+                    </EditableTextWrapper>
+                  )}
+                  {isSubheadlineVisible && (
+                    <EditableTextWrapper
+                      field="subheadline"
+                      currentStyle={getCustomTextStyle('subheadline')}
+                      onClick={() => setEditingField('subheadline')}
+                      onDelete={() => setIsSubheadlineVisible(false)}
+                      className="mt-1"
+                    >
+                      <p className={`font-sans text-xs uppercase tracking-widest ${accentColor} leading-relaxed`} style={{ textShadow: shadow }}>{subheadline}</p>
+                    </EditableTextWrapper>
+                  )}
                 </motion.div>
                 {aspect !== 'square' && (
                   <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }} className={`border-l-2 ${isLightPhoto ? 'border-zinc-950' : 'border-white'} pl-4`}>
@@ -929,22 +969,25 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
               </div>
  
               <div className={`absolute ${aspect === 'square' ? 'bottom-4 left-6 right-6' : 'bottom-8 left-8 right-8'}`}>
-                <motion.div 
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                  className={`${isLightPhoto ? 'bg-black/5' : 'bg-white/10'} backdrop-blur-md p-4 border ${isLightPhoto ? 'border-black/10' : 'border-white/20'}`}
-                >
-                  <EditableTextWrapper
-                    field="quote"
-                    currentStyle={getCustomTextStyle('quote')}
-                    onClick={() => setEditingField('quote')}
+                {isQuoteVisible && (
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.7 }}
+                    className={`${isLightPhoto ? 'bg-black/5' : 'bg-white/10'} backdrop-blur-md p-4 border ${isLightPhoto ? 'border-black/10' : 'border-white/20'}`}
                   >
-                    <p className={`font-serif text-sm md:text-base leading-snug text-center uppercase tracking-widest ${textColor}`} style={{ textShadow: shadow }}>
-                      {quote}
-                    </p>
-                  </EditableTextWrapper>
-                </motion.div>
+                    <EditableTextWrapper
+                      field="quote"
+                      currentStyle={getCustomTextStyle('quote')}
+                      onClick={() => setEditingField('quote')}
+                      onDelete={() => setIsQuoteVisible(false)}
+                    >
+                      <p className={`font-serif text-sm md:text-base leading-snug text-center uppercase tracking-widest ${textColor}`} style={{ textShadow: shadow }}>
+                        {quote}
+                      </p>
+                    </EditableTextWrapper>
+                  </motion.div>
+                )}
               </div>
             </>
           )}
@@ -967,26 +1010,32 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
               <div className={`absolute ${aspect === 'square' ? 'top-[28%] right-6 gap-4' : 'top-[35%] right-8 gap-6'} flex flex-col max-w-[180px] text-right`}>
                 <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
                   <div className="bg-pink-600 text-white text-xs font-bold px-2 py-1 inline-block mb-2 uppercase tracking-widest shadow-lg">Exclusive</div>
-                  <EditableTextWrapper
-                    field="headline"
-                    currentStyle={getCustomTextStyle('headline')}
-                    onClick={() => setEditingField('headline')}
-                  >
-                    <h3 className={`font-black uppercase leading-none mb-1 ${textColor} ${aspect === 'square' ? 'text-lg' : 'text-xl'}`} style={{ textShadow: shadow }}>{headline}</h3>
-                  </EditableTextWrapper>
+                  {isHeadlineVisible && (
+                    <EditableTextWrapper
+                      field="headline"
+                      currentStyle={getCustomTextStyle('headline')}
+                      onClick={() => setEditingField('headline')}
+                      onDelete={() => setIsHeadlineVisible(false)}
+                    >
+                      <h3 className={`font-black uppercase leading-none mb-1 ${textColor} ${aspect === 'square' ? 'text-lg' : 'text-xl'}`} style={{ textShadow: shadow }}>{headline}</h3>
+                    </EditableTextWrapper>
+                  )}
                 </motion.div>
               </div>
 
               <div className={`absolute ${aspect === 'square' ? 'bottom-[15%] left-6 gap-4' : 'bottom-[28%] left-8 gap-8'} flex flex-col max-w-[250px]`}>
                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
                   <h3 className="text-pink-600 font-sans font-black text-3xl uppercase leading-none mb-2" style={{ textShadow: shadow }}>Style<br/>Reboot</h3>
-                  <EditableTextWrapper
-                    field="subheadline"
-                    currentStyle={getCustomTextStyle('subheadline')}
-                    onClick={() => setEditingField('subheadline')}
-                  >
-                    <p className={`font-bold text-sm uppercase tracking-wider ${textColor}`} style={{ textShadow: shadow }}>{subheadline}</p>
-                  </EditableTextWrapper>
+                  {isSubheadlineVisible && (
+                    <EditableTextWrapper
+                      field="subheadline"
+                      currentStyle={getCustomTextStyle('subheadline')}
+                      onClick={() => setEditingField('subheadline')}
+                      onDelete={() => setIsSubheadlineVisible(false)}
+                    >
+                      <p className={`font-bold text-sm uppercase tracking-wider ${textColor}`} style={{ textShadow: shadow }}>{subheadline}</p>
+                    </EditableTextWrapper>
+                  )}
                 </motion.div>
                 {aspect !== 'square' && (
                   <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
@@ -998,24 +1047,27 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
 
               <div className={`absolute ${aspect === 'square' ? 'bottom-6 left-6 right-6' : 'bottom-12 left-8 right-8'}`}>
                 {aspect !== 'square' && <motion.div initial={{ width: 0 }} animate={{ width: 48 }} transition={{ delay: 0.6 }} className="bg-pink-600 h-2 mb-4 shadow-lg"></motion.div>}
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                >
-                  <EditableTextWrapper
-                    field="quote"
-                    currentStyle={getCustomTextStyle('quote')}
-                    onClick={() => setEditingField('quote')}
+                {isQuoteVisible && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.7 }}
                   >
-                    <p 
-                      className={`font-bold text-lg md:text-xl leading-tight uppercase ${textColor}`} 
-                      style={{ textShadow: shadow }}
+                    <EditableTextWrapper
+                      field="quote"
+                      currentStyle={getCustomTextStyle('quote')}
+                      onClick={() => setEditingField('quote')}
+                      onDelete={() => setIsQuoteVisible(false)}
                     >
-                      {quote}
-                    </p>
-                  </EditableTextWrapper>
-                </motion.div>
+                      <p 
+                        className={`font-bold text-lg md:text-xl leading-tight uppercase ${textColor}`} 
+                        style={{ textShadow: shadow }}
+                      >
+                        {quote}
+                      </p>
+                    </EditableTextWrapper>
+                  </motion.div>
+                )}
               </div>
             </>
           )}
@@ -1047,9 +1099,38 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
                 </motion.div>
               </div>
 
+              {/* Move Cover Quote to Top Center to prevent overlapping with bottom left sidebar */}
+              <div className={`absolute ${aspect === 'square' ? 'top-[28%]' : 'top-[31%]'} left-0 right-0 flex flex-col items-center justify-center text-center z-10 px-12`}>
+                {isQuoteVisible && (
+                  <motion.div
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                    className="inline-flex flex-col items-center"
+                  >
+                    <div className={`w-16 h-[1px] mb-3 ${isLightPhoto ? 'bg-black/20' : 'bg-white/30'}`} />
+                    <EditableTextWrapper
+                      field="quote"
+                      currentStyle={getCustomTextStyle('quote')}
+                      onClick={() => setEditingField('quote')}
+                      onDelete={() => setIsQuoteVisible(false)}
+                      className="inline-block"
+                    >
+                      <p className={`${accentColor} text-xs md:text-sm leading-relaxed italic uppercase tracking-wider max-w-[320px] md:max-w-[420px]`} style={{ textShadow: shadow }}>
+                        {quote}
+                      </p>
+                    </EditableTextWrapper>
+                    <div className={`w-16 h-[1px] mt-3 ${isLightPhoto ? 'bg-black/20' : 'bg-white/30'}`} />
+                  </motion.div>
+                )}
+              </div>
+
               <div className={`absolute ${aspect === 'square' ? 'top-[35%] left-6 gap-4 mt-4' : 'top-[45%] left-8 gap-10 mt-16'} flex flex-col max-w-[200px] md:max-w-[250px]`}>
                 {[headline, 'MIDNIGHT CYBER', 'GOLDEN AGE GLAMOUR', 'EXCLUSIVE INTERVIEW'].slice(0, aspect === 'square' ? 2 : 4).map((title, i) => {
                   const isUserHeadline = title === headline;
+                  
+                  if (isUserHeadline && !isHeadlineVisible) return null;
+
                   return (
                     <motion.div 
                       key={title + i} 
@@ -1063,6 +1144,7 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
                           field="headline"
                           currentStyle={getCustomTextStyle('headline')}
                           onClick={() => setEditingField('headline')}
+                          onDelete={() => setIsHeadlineVisible(false)}
                         >
                           <h3 className={`leading-tight tracking-tight uppercase ${textColor} ${!isLightPhoto ? 'text-yellow-400' : ''} ${aspect === 'square' ? 'text-base md:text-lg' : 'text-lg md:text-xl'}`} style={{ textShadow: shadow }}>{title}</h3>
                         </EditableTextWrapper>
@@ -1073,16 +1155,19 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
                       <div className={`h-[1px] w-0 group-hover/item:w-full transition-all duration-300 mt-1 ${isLightPhoto ? 'bg-black' : 'bg-white'}`} />
                       
                       {isUserHeadline ? (
-                        <EditableTextWrapper
-                          field="subheadline"
-                          currentStyle={getCustomTextStyle('subheadline')}
-                          onClick={() => setEditingField('subheadline')}
-                          className="mt-2"
-                        >
-                          <p className={`text-[11px] md:text-sm uppercase tracking-[0.15em] ${accentColor}`} style={{ textShadow: shadow }}>
-                            {subheadline}
-                          </p>
-                        </EditableTextWrapper>
+                        isSubheadlineVisible && (
+                          <EditableTextWrapper
+                            field="subheadline"
+                            currentStyle={getCustomTextStyle('subheadline')}
+                            onClick={() => setEditingField('subheadline')}
+                            onDelete={() => setIsSubheadlineVisible(false)}
+                            className="mt-2"
+                          >
+                            <p className={`text-[11px] md:text-sm uppercase tracking-[0.15em] ${accentColor}`} style={{ textShadow: shadow }}>
+                              {subheadline}
+                            </p>
+                          </EditableTextWrapper>
+                        )
                       ) : (
                         <p className={`text-[11px] md:text-sm sans-serif uppercase tracking-[0.15em] mt-2 ${accentColor}`} style={{ textShadow: shadow }}>
                           {title === 'MIDNIGHT CYBER' ? 'Neon Trends 2026' : 
@@ -1094,20 +1179,7 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
                 })}
               </div>
 
-              <div className={`absolute ${aspect === 'square' ? 'bottom-4 left-6 right-20' : 'bottom-8 left-8 right-24'}`}>
-                <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ delay: 0.8 }} className={`h-[1px] mb-4 ${isLightPhoto ? 'bg-black/20' : 'bg-white/30'}`} />
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.9 }} className={`border-l-2 pl-4 py-1 ${isLightPhoto ? 'border-zinc-950' : 'border-white/80'}`}>
-                  <EditableTextWrapper
-                    field="quote"
-                    currentStyle={getCustomTextStyle('quote')}
-                    onClick={() => setEditingField('quote')}
-                  >
-                    <p className={`${accentColor} text-xs md:text-sm leading-snug italic uppercase tracking-wider`} style={{ textShadow: shadow }}>
-                      {quote}
-                    </p>
-                  </EditableTextWrapper>
-                </motion.div>
-              </div>
+              {/* Removed duplicate bottom left quote to prevent overlaps with sidebar links */}
               
               <div className={`absolute ${aspect === 'square' ? 'bottom-4 right-6' : 'bottom-8 right-8'} flex flex-col items-end`}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.8 }} transition={{ delay: 1 }} className={`${accentColor} text-[10px] uppercase tracking-widest mb-2`}>Issue 01</motion.div>
@@ -1325,48 +1397,130 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
 
       {/* Dynamic Cover Text Customization Section */}
       <div className="mb-8 bg-zinc-50 border border-zinc-200 p-6">
-        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 mb-4 select-none">
-          Customize Cover Copy Options
-        </h3>
+        <div className="flex items-center justify-between mb-4 border-b border-zinc-200 pb-3">
+          <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 select-none">
+            Customize Cover Copy Options
+          </h3>
+          <span className="text-[10px] font-medium text-zinc-400">
+            Click '👁️ Shown' or the ✕ icon on hover to remove text blocks
+          </span>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="headline-input" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-              Masthead Headline
-            </label>
+          {/* Headline block config */}
+          <div className="flex flex-col gap-1.5 bg-white p-3 rounded border border-zinc-200/60 shadow-xs">
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="headline-input" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                Masthead Headline
+              </label>
+              <button 
+                type="button"
+                onClick={() => setIsHeadlineVisible(!isHeadlineVisible)}
+                className={`text-[9px] font-bold font-sans uppercase tracking-widest px-2 py-0.5 rounded border cursor-pointer transition-all ${
+                  isHeadlineVisible 
+                    ? 'bg-zinc-100 border-zinc-200 text-zinc-800 hover:bg-zinc-200' 
+                    : 'bg-red-50 border-red-200/60 text-red-600 hover:bg-red-100'
+                }`}
+                title={isHeadlineVisible ? "Hide headline block" : "Restore headline block"}
+              >
+                {isHeadlineVisible ? '👁️ Shown' : '📁 Hidden'}
+              </button>
+            </div>
             <input
               id="headline-input"
               type="text"
               value={headline}
               onChange={(e) => setHeadline(e.target.value.toUpperCase())}
               placeholder="THE NEW AVANT-GARDE"
-              className="px-3 py-2 border border-zinc-300 bg-white text-zinc-800 text-xs font-semibold uppercase tracking-wider focus:outline-none focus:border-black transition-colors"
+              className={`px-3 py-2 border rounded text-xs font-semibold uppercase tracking-wider focus:outline-none focus:border-black transition-all ${
+                isHeadlineVisible 
+                  ? 'border-zinc-300 bg-white text-zinc-800' 
+                  : 'border-zinc-200 bg-zinc-50 text-zinc-400 opacity-60'
+              }`}
+              disabled={!isHeadlineVisible}
             />
+            {!isHeadlineVisible && (
+              <span className="text-[9px] font-sans italic text-red-500 leading-snug">
+                Headline is hidden. Click "Hidden" above to restore.
+              </span>
+            )}
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="subheadline-input" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-              Subheadline Text
-            </label>
+
+          {/* Subheadline block config */}
+          <div className="flex flex-col gap-1.5 bg-white p-3 rounded border border-zinc-200/60 shadow-xs">
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="subheadline-input" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                Subheadline Text
+              </label>
+              <button 
+                type="button"
+                onClick={() => setIsSubheadlineVisible(!isSubheadlineVisible)}
+                className={`text-[9px] font-bold font-sans uppercase tracking-widest px-2 py-0.5 rounded border cursor-pointer transition-all ${
+                  isSubheadlineVisible 
+                    ? 'bg-zinc-100 border-zinc-200 text-zinc-800 hover:bg-zinc-200' 
+                    : 'bg-red-50 border-red-200/60 text-red-600 hover:bg-red-100'
+                }`}
+                title={isSubheadlineVisible ? "Hide subheadline block" : "Restore subheadline block"}
+              >
+                {isSubheadlineVisible ? '👁️ Shown' : '📁 Hidden'}
+              </button>
+            </div>
             <input
               id="subheadline-input"
               type="text"
               value={subheadline}
               onChange={(e) => setSubheadline(e.target.value)}
               placeholder="Redefining luxury for the modern era"
-              className="px-3 py-2 border border-zinc-300 bg-white text-zinc-800 text-xs font-medium focus:outline-none focus:border-black transition-colors"
+              className={`px-3 py-2 border rounded text-xs font-medium focus:outline-none focus:border-black transition-all ${
+                isSubheadlineVisible 
+                  ? 'border-zinc-300 bg-white text-zinc-800' 
+                  : 'border-zinc-200 bg-zinc-50 text-zinc-400 opacity-60'
+              }`}
+              disabled={!isSubheadlineVisible}
             />
+            {!isSubheadlineVisible && (
+              <span className="text-[9px] font-sans italic text-red-500 leading-snug">
+                Subheadline is hidden. Click "Hidden" above to restore.
+              </span>
+            )}
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="quote-input" className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-              Featured Cover Quote
-            </label>
+
+          {/* Quote block config */}
+          <div className="flex flex-col gap-1.5 bg-white p-3 rounded border border-zinc-200/60 shadow-xs">
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="quote-input" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                Featured Cover Quote
+              </label>
+              <button 
+                type="button"
+                onClick={() => setIsQuoteVisible(!isQuoteVisible)}
+                className={`text-[9px] font-bold font-sans uppercase tracking-widest px-2 py-0.5 rounded border cursor-pointer transition-all ${
+                  isQuoteVisible 
+                    ? 'bg-zinc-100 border-zinc-200 text-zinc-800 hover:bg-zinc-200' 
+                    : 'bg-red-50 border-red-200/60 text-red-600 hover:bg-red-100'
+                }`}
+                title={isQuoteVisible ? "Hide quote block" : "Restore quote block"}
+              >
+                {isQuoteVisible ? '👁️ Shown' : '📁 Hidden'}
+              </button>
+            </div>
             <input
               id="quote-input"
               type="text"
               value={quote}
               onChange={(e) => setQuote(e.target.value)}
               placeholder="A masterclass in modern silhouette..."
-              className="px-3 py-2 border border-zinc-300 bg-white text-zinc-800 text-xs font-medium focus:outline-none focus:border-black transition-colors"
+              className={`px-3 py-2 border rounded text-xs font-medium focus:outline-none focus:border-black transition-all ${
+                isQuoteVisible 
+                  ? 'border-zinc-300 bg-white text-zinc-800' 
+                  : 'border-zinc-200 bg-zinc-50 text-zinc-400 opacity-60'
+              }`}
+              disabled={!isQuoteVisible}
             />
+            {!isQuoteVisible && (
+              <span className="text-[9px] font-sans italic text-red-500 leading-snug">
+                Cover quote is hidden. Click "Hidden" above to restore.
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -1780,6 +1934,26 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
                       );
                     })}
                   </div>
+                </div>
+
+                {/* Delete / Hide Block Actions */}
+                <div className="flex gap-2 pt-2 border-t border-zinc-800 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (editingField === 'headline') {
+                        setIsHeadlineVisible(false);
+                      } else if (editingField === 'subheadline') {
+                        setIsSubheadlineVisible(false);
+                      } else if (editingField === 'quote') {
+                        setIsQuoteVisible(false);
+                      }
+                      setEditingField(null);
+                    }}
+                    className="w-full py-1.5 px-3 bg-red-950/40 hover:bg-red-900 border border-red-800/60 rounded text-[9px] uppercase font-bold tracking-widest text-red-300 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>🗑️</span> Hide/Delete Block
+                  </button>
                 </div>
               </motion.div>
             )}

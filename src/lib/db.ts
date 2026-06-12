@@ -52,7 +52,16 @@ export async function saveCreation(type: 'image' | 'video' | 'magazine', dataUrl
   if (!auth.currentUser) {
     try {
       const guestCreationsStr = localStorage.getItem('guest_creations') || '[]';
-      const guestCreations = JSON.parse(guestCreationsStr);
+      let guestCreations = [];
+      try {
+        guestCreations = JSON.parse(guestCreationsStr);
+        if (!Array.isArray(guestCreations)) {
+          guestCreations = [];
+        }
+      } catch (e) {
+        guestCreations = [];
+      }
+
       const newCreation = {
         id: `guest_creation_${Date.now()}`,
         userId: 'guest',
@@ -61,16 +70,62 @@ export async function saveCreation(type: 'image' | 'video' | 'magazine', dataUrl
         prompt: prompt || null,
         createdAt: new Date().toISOString()
       };
+
+      // Add to beginning of local queue
       guestCreations.unshift(newCreation);
-      localStorage.setItem('guest_creations', JSON.stringify(guestCreations));
-      
-      // Dispatch custom event so React components can react instantly
+
+      // Keep at most 3 creations to avoid exceeding 5MB localStorage limit with high-res base64 images
+      if (guestCreations.length > 3) {
+        guestCreations = guestCreations.slice(0, 3);
+      }
+
+      let saveSuccess = false;
+      while (guestCreations.length > 0) {
+        try {
+          localStorage.setItem('guest_creations', JSON.stringify(guestCreations));
+          saveSuccess = true;
+          break;
+        } catch (setItemErr) {
+          console.warn("Storage quota exceeded, removing oldest guest creation and retrying...", setItemErr);
+          if (guestCreations.length > 1) {
+            // Remove the oldest element
+            guestCreations.pop();
+          } else {
+            // Try saving with metadata only to store something without the huge base64 dataUrl
+            console.error("Single creation exceeds localStorage quota. Storing metadata only.", setItemErr);
+            const fallbackCreation = { ...newCreation, dataUrl: "" };
+            try {
+              localStorage.setItem('guest_creations', JSON.stringify([fallbackCreation]));
+              saveSuccess = true;
+            } catch (fallbackErr) {
+              console.error("Failed to even save metadata:", fallbackErr);
+            }
+            break;
+          }
+        }
+      }
+
+      // Dispatch custom event so React components can react instantly in current session memory
       window.dispatchEvent(new CustomEvent('guest_creation_saved', { detail: newCreation }));
       
       return { id: newCreation.id };
     } catch (err) {
-      console.error("Local storage save failed:", err);
-      throw new Error("Failed to save creation locally.");
+      console.error("Local storage save failed completely, falling back to session-only state:", err);
+      const tempId = `guest_creation_${Date.now()}`;
+      const fallbackCreation = {
+        id: tempId,
+        userId: 'guest',
+        type,
+        dataUrl,
+        prompt: prompt || null,
+        createdAt: new Date().toISOString()
+      };
+      try {
+        window.dispatchEvent(new CustomEvent('guest_creation_saved', { detail: fallbackCreation }));
+      } catch (evErr) {
+        console.error("Failed to dispatch custom event:", evErr);
+      }
+      return { id: tempId };
     }
   }
   

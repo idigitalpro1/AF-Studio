@@ -202,7 +202,17 @@ export default function App() {
 
           {/* Main Content */}
           <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-            {activeTab === 'studio' && <Studio onImageGenerated={handleImageGenerated} coverQuote={coverQuote} setCoverQuote={setCoverQuote} analysis={analysis} setAnalysis={setAnalysis} galleryItems={galleryItems} />}
+            {activeTab === 'studio' && (
+              <Studio 
+                onImageGenerated={handleImageGenerated} 
+                coverQuote={coverQuote} 
+                setCoverQuote={setCoverQuote} 
+                analysis={analysis} 
+                setAnalysis={setAnalysis} 
+                galleryItems={galleryItems} 
+                onExportToMagazine={() => setActiveTab('magazine')}
+              />
+            )}
             {activeTab === 'magazine' && <Magazine generatedImage={generatedImage} coverQuote={coverQuote} analysis={analysis} />}
             {activeTab === 'gallery' && <Gallery items={galleryItems} setItems={setGalleryItems} />}
             {activeTab === 'podcast' && <Podcast />}

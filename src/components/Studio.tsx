@@ -101,20 +101,20 @@ const applyFilterToImage = (imageSrc: string, filterCss: string): Promise<string
   });
 };
 
-function CollapsibleSection({ title, children, defaultOpen = false }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) {
+function CollapsibleSection({ title, children, defaultOpen = false, dark = false }: { title: string, children: React.ReactNode, defaultOpen?: boolean, dark?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-zinc-300 py-4">
+    <div className={`border-b ${dark ? 'border-amber-500/20' : 'border-zinc-300'} py-4`}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex justify-between items-center text-left focus:outline-none"
       >
-        <h4 className="font-serif uppercase tracking-widest text-sm text-zinc-900">{title}</h4>
+        <h4 className={`font-serif uppercase tracking-widest text-sm ${dark ? 'text-amber-400' : 'text-zinc-900'}`}>{title}</h4>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronDown className="w-4 h-4 text-zinc-500" />
+          <ChevronDown className={`w-4 h-4 ${dark ? 'text-amber-500/65' : 'text-zinc-500'}`} />
         </motion.div>
       </button>
       <AnimatePresence initial={false}>
@@ -142,14 +142,16 @@ export function Studio({
   setCoverQuote,
   analysis,
   setAnalysis,
-  galleryItems = []
+  galleryItems = [],
+  onExportToMagazine
 }: { 
   onImageGenerated: (url: string, prompt: string) => void,
   coverQuote: string | null,
   setCoverQuote: (quote: string | null) => void,
   analysis: any | null,
   setAnalysis: (analysis: any | null) => void,
-  galleryItems?: GalleryItem[]
+  galleryItems?: GalleryItem[],
+  onExportToMagazine?: () => void
 }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [trendsReport, setTrendsReport] = useState<{
@@ -365,7 +367,7 @@ Return a JSON object with this exact schema:
       };
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-3.1-flash-image',
         contents: {
           parts: parts,
         },
@@ -496,7 +498,7 @@ Return a JSON object with this exact schema:
       const ai = new GoogleGenAI({ apiKey });
       
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
+        model: "gemini-3.1-flash-tts-preview",
         contents: [{ parts: [{ text: analysis.review }] }],
         config: {
           responseModalities: [Modality.AUDIO],
@@ -1024,31 +1026,31 @@ Return a JSON object with this exact schema:
         </div>
 
         {analysis && (
-          <div className="bg-[#e5e5e5] p-4 sm:p-8 border border-zinc-300 relative overflow-hidden" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/cream-dust.png")' }}>
-            {/* Background Damask Pattern (simulated with CSS/SVG or just a subtle texture) */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/damask-seamless.png')] mix-blend-multiply" />
+          <div className="bg-zinc-950 p-4 sm:p-8 border-4 border-double border-amber-500/80 relative overflow-hidden" style={{ backgroundImage: 'radial-gradient(circle at center, #1c1917 0%, #09090b 100%)' }}>
+            {/* Elegant Vintage Pattern Overlay */}
+            <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/damask-seamless.png')] mix-blend-screen" />
             
-            <div className="relative z-10 max-w-3xl mx-auto bg-white/40 backdrop-blur-sm p-6 sm:p-10 shadow-2xl border border-white/50">
+            <div className="relative z-10 max-w-3xl mx-auto bg-zinc-900/90 border border-amber-500/20 p-6 sm:p-10 shadow-3xl">
               {/* Header */}
-              <div className="text-center mb-8 border-b-2 border-zinc-800 pb-6 relative">
+              <div className="text-center mb-8 border-b border-amber-500/30 pb-6 relative">
                 <div className="absolute top-0 right-0">
                   <button 
                     onClick={speakAnalysis}
                     disabled={isSpeaking}
-                    className="p-2 bg-zinc-900 text-white hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-50 shadow-lg"
+                    className="p-2 bg-amber-500 text-black hover:bg-amber-400 rounded-full transition-colors disabled:opacity-50 shadow-lg"
                     title="Listen to review"
                   >
                     {isSpeaking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Volume2 className="w-4 h-4" />}
                   </button>
                 </div>
-                <div className="bg-zinc-900 text-white py-2 px-6 inline-block mb-6 shadow-md">
-                  <h3 className="text-xl sm:text-2xl font-serif uppercase tracking-widest">Fashion Critics' Review</h3>
+                <div className="bg-amber-500 text-black py-2 px-6 inline-block mb-6 shadow-md font-sans font-bold tracking-[0.2em] uppercase text-xs">
+                  Fashion Critics' Review
                 </div>
-                <h2 className="text-4xl sm:text-6xl font-serif uppercase tracking-widest mb-2 text-zinc-900">ASPEN FASHION</h2>
+                <h2 className="text-4xl sm:text-6xl font-serif uppercase tracking-[0.15em] mb-2 text-amber-400 font-extrabold" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>ASPEN FASHION</h2>
                 <div className="flex items-center justify-center gap-4">
-                  <div className="h-[1px] w-12 bg-zinc-800"></div>
-                  <span className="uppercase tracking-[0.3em] text-sm font-medium text-zinc-800">PARIS</span>
-                  <div className="h-[1px] w-12 bg-zinc-800"></div>
+                  <div className="h-[1px] w-12 bg-amber-500/40"></div>
+                  <span className="uppercase tracking-[0.4em] text-xs font-bold text-amber-500/80">CLASSIC HOLLYWOOD RELEASE</span>
+                  <div className="h-[1px] w-12 bg-amber-500/40"></div>
                 </div>
               </div>
 
@@ -1056,44 +1058,44 @@ Return a JSON object with this exact schema:
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 {/* Left Column: Image */}
                 <div className="flex flex-col">
-                  <div className="border-4 border-white shadow-lg bg-zinc-100 aspect-[3/4] relative overflow-hidden">
+                  <div className="border-4 border-amber-500/30 shadow-2xl bg-zinc-950 aspect-[3/4] relative overflow-hidden">
                     <img src={generatedImageUrl || filteredPreviewUrl || previewUrl || ''} alt="Review Subject" className="w-full h-full object-cover grayscale contrast-125" />
                   </div>
-                  <div className="text-center mt-2 border-b border-zinc-400 pb-1">
-                    <span className="font-serif italic text-sm text-zinc-700">Photo Available</span>
+                  <div className="text-center mt-2 border-b border-zinc-800 pb-1">
+                    <span className="font-serif italic text-xs text-amber-500/70">Photo Archive Available</span>
                   </div>
                 </div>
 
                 {/* Right Column: Text */}
-                <div className="flex flex-col justify-start">
+                <div className="flex flex-col justify-start text-zinc-100">
                   <div className="mb-6">
-                    <h4 className="text-2xl sm:text-3xl font-serif uppercase tracking-wider text-zinc-900 mb-2 leading-tight">
+                    <h4 className="text-2xl sm:text-3xl font-serif uppercase tracking-wider text-amber-400 mb-2 leading-tight" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}>
                       {analysis.headline || "ELEGANTLY EXQUISITE"}
                     </h4>
-                    <p className="font-serif italic text-lg text-zinc-700">
+                    <p className="font-serif italic text-base text-zinc-300">
                       {analysis.subheadline || "A Stunning Debut in the Rockies"}
                     </p>
                     {analysis.quote && (
-                      <div className="border-l-2 border-zinc-900 pl-4 py-1 mt-4">
-                        <p className="font-serif italic text-zinc-800">"{analysis.quote}"</p>
+                      <div className="border-l-2 border-amber-500 pl-4 py-1 mt-4 bg-zinc-950/45">
+                        <p className="font-serif italic text-zinc-200 text-sm">"{analysis.quote}"</p>
                       </div>
                     )}
                   </div>
                   
-                  <div className="border-t border-zinc-300">
-                    <CollapsibleSection title="The Review" defaultOpen={true}>
-                      <div className="prose prose-zinc prose-sm sm:prose-base max-w-none font-serif leading-relaxed text-zinc-800">
+                  <div className="border-t border-zinc-800">
+                    <CollapsibleSection title="The Review" defaultOpen={true} dark={true}>
+                      <div className="prose prose-invert prose-sm sm:prose-base max-w-none font-serif leading-relaxed text-zinc-200">
                         <Markdown>{analysis.review}</Markdown>
                       </div>
                     </CollapsibleSection>
 
                     {analysis.criticQuotes && analysis.criticQuotes.length > 0 && (
-                      <CollapsibleSection title="Critic Quotes">
+                      <CollapsibleSection title="Critic Quotes" dark={true}>
                         <div className="space-y-6">
                           {analysis.criticQuotes.map((q: any, i: number) => (
-                            <div key={i} className="text-right">
-                              <p className="font-serif italic text-lg text-zinc-900 mb-1">"{q.quote}"</p>
-                              <p className="text-xs uppercase tracking-widest text-zinc-600">— {q.source}</p>
+                            <div key={i} className="text-right border-r border-amber-500/10 pr-3">
+                              <p className="font-serif italic text-base text-zinc-200 mb-1">"{q.quote}"</p>
+                              <p className="text-[10px] uppercase tracking-widest text-amber-500/80">— {q.source}</p>
                             </div>
                           ))}
                         </div>
@@ -1101,10 +1103,10 @@ Return a JSON object with this exact schema:
                     )}
 
                     {analysis.shopLinks && analysis.shopLinks.length > 0 && (
-                      <CollapsibleSection title="Shop The Look">
+                      <CollapsibleSection title="Shop The Look" dark={true}>
                         <div className="flex flex-wrap gap-3">
                           {analysis.shopLinks.map((link: any, i: number) => (
-                            <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider border border-zinc-400 px-4 py-2 hover:bg-zinc-900 hover:text-white transition-colors">
+                            <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider border border-amber-500/30 px-3 py-1.5 hover:bg-amber-500 hover:text-black hover:border-amber-500 text-amber-400 transition-colors">
                               {link.name}
                             </a>
                           ))}
@@ -1115,8 +1117,16 @@ Return a JSON object with this exact schema:
                 </div>
               </div>
 
-              {/* Publish Link */}
-              <div className="mt-8 mb-8 text-center flex flex-col sm:flex-row items-center justify-center gap-4">
+              {/* Publish & Export Links */}
+              <div className="mt-8 mb-8 text-center flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4">
+                {onExportToMagazine && (
+                  <button 
+                    onClick={onExportToMagazine}
+                    className="inline-flex items-center justify-center bg-amber-500 text-black font-serif uppercase tracking-[0.15em] px-6 py-4 hover:bg-amber-400 transition-all font-bold border-2 border-amber-300 text-sm sm:text-base w-full sm:w-auto shadow-2xl rounded-none cursor-pointer"
+                  >
+                    ✨ Export to Aspen Cover Creator
+                  </button>
+                )}
                 <button 
                   onClick={() => {
                     const a = document.createElement('a');
@@ -1124,12 +1134,12 @@ Return a JSON object with this exact schema:
                     a.download = `${analysis.headline || 'editorial'}.jpg`;
                     a.click();
                   }}
-                  className="inline-flex items-center justify-center bg-black text-white font-serif uppercase tracking-[0.15em] px-6 py-4 hover:bg-zinc-800 transition-colors shadow-2xl border border-zinc-700 text-sm sm:text-base w-full sm:w-auto"
+                  className="inline-flex items-center justify-center bg-zinc-900 text-amber-400 font-serif uppercase tracking-[0.15em] px-6 py-4 hover:bg-zinc-800 transition-colors shadow-2xl border border-amber-500/40 text-sm sm:text-base w-full sm:w-auto"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download Editorial .JPG
                 </button>
-                <a href="https://aspenfashion.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center bg-white text-black font-serif uppercase tracking-[0.15em] px-6 py-4 hover:bg-zinc-100 transition-colors shadow-2xl border border-zinc-300 text-sm sm:text-base w-full sm:w-auto">
+                <a href="https://aspenfashion.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center bg-zinc-900 text-zinc-300 font-serif uppercase tracking-[0.15em] px-6 py-4 hover:bg-zinc-800 transition-colors shadow-2xl border border-zinc-700 text-sm sm:text-base w-full sm:w-auto">
                   Publish Live on Aspen Fashion — $50
                 </a>
                 <button 
@@ -1140,15 +1150,15 @@ Return a JSON object with this exact schema:
                     setAnalysis(null);
                     setSelectedFilter('none');
                   }}
-                  className="inline-flex items-center justify-center bg-red-600 text-white font-serif uppercase tracking-[0.15em] px-6 py-4 hover:bg-red-700 transition-colors shadow-2xl border border-red-800 text-sm sm:text-base w-full sm:w-auto"
+                  className="inline-flex items-center justify-center bg-red-950 text-red-100 font-serif uppercase tracking-[0.15em] px-6 py-4 hover:bg-red-900 transition-colors shadow-2xl border border-red-800 text-sm sm:text-base w-full sm:w-auto"
                 >
                   Delete / Start Over
                 </button>
               </div>
 
               {/* Footer */}
-              <div className="border-t-2 border-b-2 border-zinc-800 py-3 text-center">
-                <p className="font-serif uppercase tracking-[0.2em] text-sm sm:text-base text-zinc-900">
+              <div className="border-t border-b border-amber-500/30 py-3 text-center">
+                <p className="font-serif uppercase tracking-[0.2em] text-sm sm:text-base text-amber-400 font-bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                   WHERE ALPINE GLAMOUR MEETS HAUTE COUTURE
                 </p>
               </div>
