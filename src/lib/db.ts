@@ -50,7 +50,28 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 export async function saveCreation(type: 'image' | 'video' | 'magazine', dataUrl: string, prompt?: string) {
   if (!auth.currentUser) {
-    throw new Error("Authentication required to save creation.");
+    try {
+      const guestCreationsStr = localStorage.getItem('guest_creations') || '[]';
+      const guestCreations = JSON.parse(guestCreationsStr);
+      const newCreation = {
+        id: `guest_creation_${Date.now()}`,
+        userId: 'guest',
+        type,
+        dataUrl,
+        prompt: prompt || null,
+        createdAt: new Date().toISOString()
+      };
+      guestCreations.unshift(newCreation);
+      localStorage.setItem('guest_creations', JSON.stringify(guestCreations));
+      
+      // Dispatch custom event so React components can react instantly
+      window.dispatchEvent(new CustomEvent('guest_creation_saved', { detail: newCreation }));
+      
+      return { id: newCreation.id };
+    } catch (err) {
+      console.error("Local storage save failed:", err);
+      throw new Error("Failed to save creation locally.");
+    }
   }
   
   const pathForWrite = 'creations';

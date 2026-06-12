@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Download, Share2, Save, Loader2, Trash2, Plus, Sparkles, Move } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { motion, AnimatePresence } from 'motion/react';
@@ -309,13 +309,58 @@ const EditableTextWrapper = ({ field, currentStyle, children, onClick, className
   onClick: (e: React.MouseEvent) => void;
   className?: string;
 }) => {
+  const styledChildren = React.Children.map(children, (child) => {
+    if (React.isValidElement(child)) {
+      const element = child as React.ReactElement<any>;
+      const childStyle = { 
+        ...element.props.style, 
+        ...currentStyle
+      };
+      
+      let childClassName = element.props.className || '';
+      
+      if (currentStyle.fontFamily) {
+        childClassName = childClassName
+          .replace(/\bfont-(serif|sans|mono)\b/g, '');
+      }
+      
+      if (currentStyle.fontSize) {
+        childClassName = childClassName
+          .replace(/\btext-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl)\b/g, '')
+          .replace(/\btext-\[[^\]]+\]\b/g, '');
+      }
+      
+      if (currentStyle.color) {
+        childClassName = childClassName
+          .replace(/\btext-(zinc|white|black|yellow|red|pink|amber|gray|slate|neutral)(-\d+)?\b/g, '')
+          .replace(/\btext-white\b/g, '')
+          .replace(/\btext-black\b/g, '');
+      }
+      
+      if (currentStyle.fontWeight) {
+        childClassName = childClassName
+          .replace(/\bfont-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)\b/g, '');
+      }
+      
+      if (currentStyle.letterSpacing) {
+        childClassName = childClassName
+          .replace(/\btracking-(tighter|tight|normal|wide|wider|widest)\b/g, '');
+      }
+      
+      return React.cloneElement(element, {
+        style: childStyle,
+        className: childClassName
+      });
+    }
+    return child;
+  });
+
   return (
     <div 
       onClick={(e) => {
         e.stopPropagation();
         onClick(e);
       }}
-      style={currentStyle}
       className={`group/editable cursor-pointer relative hover:ring-1 hover:ring-dashed hover:ring-amber-500/70 p-0.5 rounded transition-all pointer-events-auto select-none ${className}`}
       title={`Click to customize ${field}`}
     >
@@ -326,7 +371,7 @@ const EditableTextWrapper = ({ field, currentStyle, children, onClick, className
       >
         ✍️ Custom {field}
       </span>
-      {children}
+      {styledChildren}
     </div>
   );
 };
@@ -447,9 +492,13 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
       style.fontFamily = defaultFontFamily;
     }
 
-    if (size !== 100) {
-      style.fontSize = `${size}%`;
-    }
+    const baseSizes: { [key: string]: number } = {
+      headline: 22,
+      subheadline: 14,
+      quote: 16
+    };
+    const baseVal = baseSizes[field];
+    style.fontSize = `${(size / 100) * baseVal}px`;
 
     if (color !== 'default') {
       style.color = color;
@@ -671,7 +720,7 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
       if (selectedMagazine === 'ASPEN FASHION') {
         return (
           <div className="flex flex-col items-center">
-            <h1 className={`font-serif ${textColor} tracking-tighter font-bold leading-[0.8] ${aspect === 'square' ? 'text-5xl md:text-7xl' : 'text-7xl md:text-[8rem]'}`} style={{ textShadow: mastheadShadow, textAlign: 'center', width: '105%' }}>
+            <h1 className={`font-serif ${textColor} tracking-tighter font-bold leading-[0.8] ${aspect === 'square' ? 'text-5xl md:text-7xl' : 'text-7xl md:text-[8rem]'}`} style={{ textShadow: mastheadShadow, textAlign: 'center', width: '100%' }}>
               ASPEN
             </h1>
             <div className={`flex items-center gap-4 ${aspect === 'square' ? 'mt-2' : 'mt-4'} w-full px-8`}>
@@ -974,7 +1023,7 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
           {/* Default / Collective Layouts for others */}
           {!['VOGUE', "HARPER'S BAZAAR", 'ELLE'].includes(selectedMagazine) && (
             <>
-              <div className={`absolute ${aspect === 'square' ? 'top-4 left-4' : 'top-8 left-8'} z-10`}>
+              <div className={`absolute ${aspect === 'square' ? 'top-[30%] left-4' : 'top-[33%] left-8'} z-10`}>
                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className={`${isLightPhoto ? 'bg-white/80 border-l-zinc-950' : 'bg-black/40 border-l-yellow-400'} backdrop-blur-sm p-3 border-l-2 max-w-[200px]`}>
                   <div className={`${textColor} text-[9px] md:text-[10px] uppercase tracking-[0.2em] leading-relaxed`} style={{ textShadow: shadow }}>
                     <span className={`font-bold block mb-1 ${isLightPhoto ? 'text-zinc-950' : 'text-yellow-400'}`}>PHOTO DESCRIPTION:</span>
@@ -982,7 +1031,7 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
                   </div>
                 </motion.div>
               </div>
-              <div className={`absolute ${aspect === 'square' ? 'top-4 right-4' : 'top-8 right-8'} z-10`}>
+              <div className={`absolute ${aspect === 'square' ? 'top-[30%] right-4' : 'top-[33%] right-8'} z-10`}>
                 <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 0.9 }} className={`${textColor} opacity-90 text-[10px] md:text-xs uppercase tracking-[0.3em] text-right mt-2`} style={{ textShadow: shadow }}>
                   VOL 4. / EXCLUSIVE
                 </motion.div>

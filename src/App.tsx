@@ -107,6 +107,60 @@ export default function App() {
     return () => unsubscribe();
   }, [isLoggedIn]);
 
+  // Load guest creations and listen for events when running in guest mode
+  useEffect(() => {
+    if (isLoggedIn && !auth.currentUser) {
+      const loadGuestCreations = () => {
+        try {
+          const guestCreationsStr = localStorage.getItem('guest_creations') || '[]';
+          const guestCreations = JSON.parse(guestCreationsStr);
+          const localItems: GalleryItem[] = guestCreations.map((c: any) => ({
+            id: c.id,
+            url: c.dataUrl,
+            user: 'Aspen Guest',
+            stars: 0,
+            comments: 0,
+            commentsList: [],
+            quote: c.prompt ? `"${c.prompt}"` : undefined
+          }));
+          setGalleryItems([...localItems, ...INITIAL_GALLERY]);
+        } catch (err) {
+          console.error("Failed to load local guest creations:", err);
+        }
+      };
+
+      loadGuestCreations();
+
+      const handleGuestSave = (e: Event) => {
+        const customEvent = e as CustomEvent;
+        const newCreation = customEvent.detail;
+        setGalleryItems(prev => {
+          // Prevent duplicates
+          if (prev.some(item => item.url === newCreation.dataUrl)) {
+            return prev;
+          }
+          return [
+            {
+              id: newCreation.id,
+              url: newCreation.dataUrl,
+              user: 'Aspen Guest',
+              stars: 0,
+              comments: 0,
+              commentsList: [],
+              quote: newCreation.prompt ? `"${newCreation.prompt}"` : undefined
+            },
+            ...prev
+          ];
+        });
+      };
+
+      window.addEventListener('guest_creation_saved', handleGuestSave);
+      return () => {
+        window.removeEventListener('guest_creation_saved', handleGuestSave);
+      };
+    }
+  }, [isLoggedIn]);
+
   const handleImageGenerated = (url: string, prompt: string) => {
     setGeneratedImage(url);
     setGeneratedPrompt(prompt);
