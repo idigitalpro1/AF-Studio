@@ -1,0 +1,6 @@
+{
+  "name": "Remix: Fleurish Studio",
+  "description": "The ultimate fashion editor. Upload photos to generate red carpet looks, analyze fashion, create magazine covers, and generate runway music.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
