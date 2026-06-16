@@ -1,24 +1,35 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
     // ===============================================================
-    // Assumed Data Model
+    // Assumed Data Models
     // ===============================================================
     //
     // Collection: creations
     // Document ID: auto-generated
     // Fields:
-    //   - userId: string (required, immutable) - The ID of the user who created this art
+    //   - userId: string (required, immutable)
     //   - type: string (required) - 'image', 'video', 'magazine'
-    //   - dataUrl: string (required) - The base64 data URL
-    //   - prompt: string (optional) - The prompt used
-    //   - createdAt: timestamp (required, immutable) - Creation time
+    //   - dataUrl: string (required)
+    //   - prompt: string (optional)
+    //   - stars: int (optional, default 0)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: likes
+    // Document ID: {userId}_{creationId} (required, immutable)
+    // Fields:
+    //   - userId: string (required, immutable)
+    //   - creationId: string (required, immutable)
+    //   - createdAt: timestamp (required, immutable)
     //
     // ===============================================================
 
-    // ===============================================================
     // Helper Functions
-    // ===============================================================
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -29,16 +40,6 @@ service cloud.firestore {
 
     function isDocOwner() {
       return isAuthenticated() && request.auth.uid == resource.data.userId;
-    }
-
-    function uidUnchanged() {
-      return !('userId' in request.resource.data) ||
-        request.resource.data.userId == request.auth.uid;
-    }
-
-    function uidNotModified() {
-      return !('userId' in request.resource.data) ||
-        request.resource.data.userId == resource.data.userId;
     }
 
     function hasRequiredFields(fields) {
@@ -55,23 +56,63 @@ service cloud.firestore {
 
     // Domain Validators
     function isValidCreation(data) {
-      return hasOnlyAllowedFields(['userId', 'type', 'dataUrl', 'prompt', 'createdAt']) &&
+      return hasOnlyAllowedFields(['userId', 'type', 'dataUrl', 'prompt', 'createdAt', 'stars']) &&
              data.userId is string && data.userId.size() > 0 && data.userId.size() < 128 &&
              data.type in ['image', 'video', 'magazine'] &&
              data.dataUrl is string && data.dataUrl.size() > 0 && data.dataUrl.size() < 1000000 &&
              (!('prompt' in data) || (data.prompt is string && data.prompt.size() < 5000)) &&
+             (!('stars' in data) || (data.stars is int)) &&
              data.createdAt is timestamp;
     }
 
     match /creations/{creationId} {
-      allow read: if isDocOwner();
+      allow read: if isAuthenticated(); // Allowed to view community creations
       allow create: if isAuthenticated() &&
                     isValidCreation(request.resource.data) &&
                     request.resource.data.userId == request.auth.uid;
-      allow update: if isDocOwner() &&
-                    isValidCreation(request.resource.data) &&
-                    areImmutableFieldsUnchanged(['userId', 'createdAt']);
+      allow update: if isAuthenticated() && (
+        // Case 1: Owner updating general fields (must not modify stars)
+        (isDocOwner() &&
+         isValidCreation(request.resource.data) &&
+         areImmutableFieldsUnchanged(['userId', 'createdAt', 'stars'])) ||
+        
+        // Case 2: Any authenticated user rating/favoriting (can ONLY change stars count by +1 or -1 atomically)
+        (
+         isValidCreation(request.resource.data) &&
+         areImmutableFieldsUnchanged(['userId', 'type', 'dataUrl', 'prompt', 'createdAt']) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stars']) &&
+         (
+           // Subcase A: Upvoted (Like added)
+           (request.resource.data.stars == resource.data.stars + 1 &&
+            existsAfter(/databases/$(database)/documents/likes/$(request.auth.uid)_$(creationId))) ||
+           
+           // Subcase B: Downvoted (Like removed)
+           (request.resource.data.stars == resource.data.stars - 1 &&
+            !existsAfter(/databases/$(database)/documents/likes/$(request.auth.uid)_$(creationId)))
+         )
+        )
+      );
       allow delete: if isDocOwner();
+    }
+
+    match /likes/{likeId} {
+      // Users can list/read their own likes
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Creating a like
+      allow create: if isAuthenticated() &&
+                    likeId == request.auth.uid + "_" + request.resource.data.creationId &&
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.creationId is string &&
+                    request.resource.data.createdAt is timestamp &&
+                    request.resource.data.createdAt == request.time &&
+                    exists(/databases/$(database)/documents/creations/$(request.resource.data.creationId));
+                    
+      // Editing likes is forbidden
+      allow update: if false;
+      
+      // Deleting a like
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }

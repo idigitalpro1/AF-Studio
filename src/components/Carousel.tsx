@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Star, ChevronLeft, ChevronRight, Trash2, RefreshCw } from 'lucide-react';
 
 export interface GalleryItem {
-  id: number;
+  id: string | number;
   url: string;
   user: string;
   stars: number;
@@ -26,7 +26,7 @@ export function Carousel({ items, setItems, onRemix }: { items: GalleryItem[], s
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string | number) => {
     setItems(prev => prev.filter(item => item.id !== id));
   };
 

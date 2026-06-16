@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { ApiKeyWrapper } from './components/ApiKeyWrapper';
 import { Studio } from './components/Studio';
@@ -16,6 +16,7 @@ import { MusicPlayer } from './components/MusicPlayer';
 import { Carousel, GalleryItem } from './components/Carousel';
 import { Login } from './components/Login';
 import { Camera, BookOpen, Image as ImageIcon, Mic, Video } from 'lucide-react';
+import { motion } from 'motion/react';
 
 const INITIAL_GALLERY: GalleryItem[] = [
   {
@@ -64,6 +65,7 @@ export default function App() {
   const [coverQuote, setCoverQuote] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<any | null>(null);
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>(INITIAL_GALLERY);
+  const [likedCreations, setLikedCreations] = useState<Set<string | number>>(new Set());
 
   // Update the latest gallery item's quote when it becomes available
   useEffect(() => {
@@ -81,6 +83,29 @@ export default function App() {
   }, [coverQuote]);
 
   useEffect(() => {
+    if (!isLoggedIn || !auth.currentUser) {
+      setLikedCreations(new Set());
+      return;
+    }
+
+    const qLikes = query(collection(db, 'likes'), where('userId', '==', auth.currentUser.uid));
+    const unsubscribeLikes = onSnapshot(qLikes, (snapshot) => {
+      const likedIds = new Set<string | number>();
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.creationId) {
+          likedIds.add(data.creationId);
+        }
+      });
+      setLikedCreations(likedIds);
+    }, (error) => {
+      console.error("Error fetching likes:", error);
+    });
+
+    return () => unsubscribeLikes();
+  }, [isLoggedIn]);
+
+  useEffect(() => {
     if (!isLoggedIn || !auth.currentUser) return;
     
     const q = query(collection(db, 'creations'), orderBy('createdAt', 'desc'));
@@ -88,12 +113,12 @@ export default function App() {
       const dbItems: GalleryItem[] = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
-          id: doc.id as unknown as number, // Using string ID as number for now, or we can change GalleryItem id to string|number
+          id: doc.id,
           url: data.dataUrl,
           user: 'Aspen Creator', // We could fetch user profile if we had one
-          stars: 0,
-          comments: 0,
-          commentsList: [],
+          stars: data.stars || 0,
+          comments: data.comments || 0,
+          commentsList: data.commentsList || [],
           quote: data.prompt ? `"${data.prompt.substring(0, 50)}..."` : undefined
         };
       });
@@ -194,7 +219,14 @@ export default function App() {
           <header className="bg-white/80 backdrop-blur-md border-b border-zinc-200 sticky top-0 z-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
               <div className="flex flex-col justify-center">
-                <h1 className="text-xl sm:text-2xl font-serif uppercase tracking-widest font-bold leading-none">ASPEN FASHION</h1>
+                <motion.h1 
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="text-xl sm:text-2xl font-serif uppercase tracking-widest font-bold leading-none"
+                >
+                  ASPEN FASHION
+                </motion.h1>
               </div>
               <MusicPlayer />
             </div>
@@ -214,7 +246,7 @@ export default function App() {
               />
             )}
             {activeTab === 'magazine' && <Magazine generatedImage={generatedImage} coverQuote={coverQuote} analysis={analysis} />}
-            {activeTab === 'gallery' && <Gallery items={galleryItems} setItems={setGalleryItems} />}
+            {activeTab === 'gallery' && <Gallery items={galleryItems} setItems={setGalleryItems} likedCreations={likedCreations} />}
             {activeTab === 'podcast' && <Podcast />}
             {activeTab === 'runway' && <Runway generatedImage={generatedImage} generatedPrompt={generatedPrompt} />}
           </main>

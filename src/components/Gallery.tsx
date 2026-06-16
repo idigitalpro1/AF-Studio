@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Star, MessageCircle, Share2, Award, Download, X, Trash2 } from 'lucide-react';
 import { GalleryItem } from './Carousel';
 import { Watermark } from './Watermark';
+import { auth } from '../firebase';
+import { toggleLike } from '../lib/db';
 
 function GalleryCard({ 
   item, 
@@ -9,16 +11,18 @@ function GalleryCard({
   handlePost, 
   handleDownload, 
   handleDelete,
+  hasLiked,
   inputs, 
   setInputs 
 }: { 
   item: GalleryItem, 
-  handleStar: (id: number) => void, 
-  handlePost: (id: number) => void, 
+  handleStar: (id: string | number) => void, 
+  handlePost: (id: string | number) => void, 
   handleDownload: (url: string, user: string, tier: string) => void, 
-  handleDelete?: (id: number) => void,
-  inputs: Record<number, string>, 
-  setInputs: (inputs: Record<number, string>) => void 
+  handleDelete?: (id: string | number) => void,
+  hasLiked: boolean,
+  inputs: Record<string | number, string>, 
+  setInputs: (inputs: Record<string | number, string>) => void 
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -102,7 +106,7 @@ function GalleryCard({
             <span className="font-serif uppercase tracking-widest text-sm truncate mr-2">{item.user}</span>
             <div className="flex gap-4 shrink-0">
               <div className="flex items-center gap-1 text-zinc-500">
-                <Star className="w-4 h-4" />
+                <Star className={`w-4 h-4 ${hasLiked ? 'text-yellow-500 fill-yellow-500' : ''}`} />
                 <span className="text-sm font-medium">{item.stars}</span>
               </div>
               <div className="flex items-center gap-1 text-zinc-500">
@@ -186,9 +190,14 @@ function GalleryCard({
             <div className="flex gap-2">
               <button 
                 onClick={() => handleStar(item.id)}
-                className="flex-1 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+                className={`flex-1 py-2.5 border text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${
+                  hasLiked 
+                    ? 'bg-yellow-500 hover:bg-yellow-600 border-yellow-500 text-black font-semibold shadow-inner' 
+                    : 'bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-white'
+                }`}
+                id={`rate-btn-${item.id}`}
               >
-                <Star className="w-4 h-4" /> Rate
+                <Star className={`w-4 h-4 ${hasLiked ? 'fill-black text-black' : ''}`} /> {hasLiked ? 'Starred' : 'Rate'}
               </button>
               <button 
                 className="flex-1 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
@@ -226,16 +235,30 @@ function GalleryCard({
   );
 }
 
-export function Gallery({ items, setItems }: { items: GalleryItem[], setItems: (items: GalleryItem[]) => void }) {
-  const [inputs, setInputs] = useState<Record<number, string>>({});
+export function Gallery({ 
+  items, 
+  setItems, 
+  likedCreations 
+}: { 
+  items: GalleryItem[], 
+  setItems: (items: GalleryItem[]) => void, 
+  likedCreations?: Set<string | number> 
+}) {
+  const [inputs, setInputs] = useState<Record<string | number, string>>({});
 
-  const handleStar = (id: number) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, stars: item.stars + 1 } : item
-    ));
+  const handleStar = (id: string | number) => {
+    // Check if user is authenticated (meaning running fully in Firestore database mode)
+    if (auth.currentUser) {
+      toggleLike(id.toString());
+    } else {
+      // Offline/Guest fallback
+      setItems(items.map(item => 
+        item.id === id ? { ...item, stars: item.stars + 1 } : item
+      ));
+    }
   };
 
-  const handlePost = (id: number) => {
+  const handlePost = (id: string | number) => {
     const text = inputs[id];
     if (!text || !text.trim()) return;
     
@@ -250,7 +273,7 @@ export function Gallery({ items, setItems }: { items: GalleryItem[], setItems: (
     setInputs({ ...inputs, [id]: '' });
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string | number) => {
     setItems(items.filter(item => item.id !== id));
   };
 
@@ -322,6 +345,7 @@ export function Gallery({ items, setItems }: { items: GalleryItem[], setItems: (
               handlePost={handlePost}
               handleDownload={handleDownload}
               handleDelete={handleDelete}
+              hasLiked={!!likedCreations?.has(item.id)}
               inputs={inputs}
               setInputs={setInputs}
             />

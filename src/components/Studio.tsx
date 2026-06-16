@@ -941,13 +941,35 @@ Return a JSON object with this exact schema:
 
                     {/* Top Bar: Volume */}
                     <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
-                      <div className="text-white/90 text-[8px] md:text-[10px] uppercase tracking-widest font-bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-                        ASPEN FASHION <span className="font-normal text-white/70">by</span> PATRICK HENRY SWEENEY
+                      <div className="text-white/70 text-[8px] md:text-[10px] uppercase tracking-widest font-bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                        ISSUE 01
                       </div>
-                      <div className="text-white/90 text-[8px] md:text-[10px] uppercase tracking-widest text-right" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                      <div className="text-white/70 text-[8px] md:text-[10px] uppercase tracking-widest text-right" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
                         VOL 4. / EXCLUSIVE
                       </div>
                     </div>
+
+                    {/* Centered Masthead */}
+                    <motion.div 
+                      initial={{ y: -20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+                      className="absolute top-10 left-0 right-0 flex flex-col items-center justify-center select-none text-center z-10"
+                    >
+                      <h1 className="text-5xl md:text-6xl font-serif text-white tracking-widest leading-none font-bold uppercase transition-all" style={{ textShadow: '0 4px 12px rgba(0,0,0,0.8)' }}>
+                        ASPEN
+                      </h1>
+                      <div className="flex items-center gap-3 mt-1.5 w-full px-12">
+                        <div className="h-[1px] flex-1 bg-white/40" />
+                        <h2 className="text-xs md:text-sm font-serif text-white tracking-[0.4em] uppercase font-bold" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+                          FASHION
+                        </h2>
+                        <div className="h-[1px] flex-1 bg-white/40" />
+                      </div>
+                      <p className="text-[8px] md:text-[9px] font-sans text-white/70 tracking-[0.3em] uppercase mt-2.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                        by PATRICK HENRY SWEENEY
+                      </p>
+                    </motion.div>
 
                     {/* Left Side: Magazine Titles */}
                     <div className="absolute top-1/2 -translate-y-1/2 left-4 z-10 flex flex-col gap-6 max-w-[140px] md:max-w-[180px]">
@@ -969,18 +991,6 @@ Return a JSON object with this exact schema:
                       </div>
                     </div>
 
-                    {/* Masthead (Moved to Bottom) */}
-                    <div className="absolute bottom-32 left-6 z-10">
-                      <h1 className="text-5xl md:text-6xl font-serif text-white tracking-tighter opacity-95 font-bold" style={{ textShadow: '0 4px 12px rgba(0,0,0,0.8)' }}>
-                        ASPEN
-                      </h1>
-                      <h2 className="text-xl md:text-2xl font-serif text-white tracking-[0.3em] uppercase mt-[-8px] font-bold" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
-                        FASHION
-                      </h2>
-                      <p className="text-[10px] md:text-[12px] font-sans text-white tracking-[0.3em] uppercase mt-2 font-bold" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                        by PATRICK HENRY SWEENEY
-                      </p>
-                    </div>
 
                     {/* Quote / Highlight / Review Snippet */}
                     <div className="absolute bottom-6 left-6 right-20 z-10">

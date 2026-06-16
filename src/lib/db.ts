@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
 import { db, auth } from './firebase';
 
 export enum OperationType {
@@ -143,4 +143,53 @@ export async function saveCreation(type: 'image' | 'video' | 'magazine', dataUrl
     handleFirestoreError(error, OperationType.WRITE, pathForWrite);
   }
 }
+
+export async function toggleLike(creationId: string): Promise<boolean> {
+  if (!auth.currentUser) {
+    console.warn("User must be signed in to rate/favorite items.");
+    return false;
+  }
+  const userId = auth.currentUser.uid;
+  const likeDocId = `${userId}_${creationId}`;
+  
+  const creationRef = doc(db, 'creations', creationId);
+  const likeRef = doc(db, 'likes', likeDocId);
+  
+  try {
+    const wasLiked = await runTransaction(db, async (transaction) => {
+      const creationDoc = await transaction.get(creationRef);
+      if (!creationDoc.exists()) {
+        throw new Error("Creation does not exist!");
+      }
+      
+      const likeDoc = await transaction.get(likeRef);
+      const currentStars = creationDoc.data().stars || 0;
+      
+      if (likeDoc.exists()) {
+        // User has already liked it, so UNLIKE it
+        transaction.delete(likeRef);
+        transaction.update(creationRef, { 
+          stars: Math.max(0, currentStars - 1) 
+        });
+        return false;
+      } else {
+        // User has not liked it yet, so LIKE it
+        transaction.set(likeRef, {
+          userId,
+          creationId,
+          createdAt: serverTimestamp()
+        });
+        transaction.update(creationRef, { 
+          stars: currentStars + 1 
+        });
+        return true;
+      }
+    });
+    return wasLiked;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `creations/${creationId}`);
+    return false;
+  }
+}
+
 

@@ -22,6 +22,10 @@
           "type": "string",
           "description": "The prompt used to generate the creation."
         },
+        "stars": {
+          "type": "integer",
+          "description": "The number of stars/likes this creation has received."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -29,6 +33,27 @@
         }
       },
       "required": ["userId", "type", "dataUrl", "createdAt"]
+    },
+    "Like": {
+      "title": "Like",
+      "description": "A user liking or favoriting a creation.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who liked the creation."
+        },
+        "creationId": {
+          "type": "string",
+          "description": "The ID of the liked creation."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The time the like was created."
+        }
+      },
+      "required": ["userId", "creationId", "createdAt"]
     }
   },
   "firestore": {
@@ -37,6 +62,12 @@
         "$ref": "#/entities/Creation"
       },
       "description": "Stores user art creations."
+    },
+    "/likes/{likeId}": {
+      "schema": {
+        "$ref": "#/entities/Like"
+      },
+      "description": "Stores user likes/favorites for creations to prevent duplicate voting."
     }
   }
 }
