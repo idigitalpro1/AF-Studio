@@ -63,7 +63,7 @@ export function Podcast() {
       // 1. Generate Script with Search Grounding
       const scriptResponse = await ai.models.generateContent({
         model: 'gemini-3.1-pro-preview',
-        contents: "You are Patrick Henry Sweeney, publisher of Aspen Fashion. You are a formal classic enthusiast of Versace, Hugo Boss, Armani, and Louis Vuitton, and a critic of high distinction. Write the script for your latest podcast episode of 'The Aspen Fashion Report'. Cover the absolute latest real-world fashion news, upcoming fashion week dates, and recent chatter/gossip from worldwide fashion icons. Use the googleSearch tool to get the latest real information. Make it engaging, authoritative, and sophisticated. Keep the script to about 400-500 words so it can be synthesized to audio smoothly. Output ONLY the spoken text, no stage directions or speaker labels.",
+        contents: "You are Patrick H. Sweeney, publisher of Aspen Fashion. You are a formal classic enthusiast of Versace, Hugo Boss, Armani, and Louis Vuitton, and a critic of high distinction. Write the script for your single weekly podcast episode of 'The Aspen Fashion Weekly Report'. Cover the absolute latest real-world fashion news, upcoming fashion week dates, and recent chatter/gossip from worldwide fashion icons. Use the googleSearch tool to get the latest real information. Make it engaging, authoritative, and sophisticated. Keep the script to about 400-500 words so it can be synthesized to audio smoothly. Output ONLY the spoken text, no stage directions or speaker labels.",
         config: {
           tools: [{ googleSearch: {} }],
         }
@@ -128,11 +128,12 @@ export function Podcast() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-20">
+    <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
       <div className="mb-12 text-center">
-        <h2 className="text-4xl font-serif uppercase tracking-widest mb-4">The Aspen Fashion Report</h2>
-        <p className="text-zinc-500 max-w-2xl mx-auto">
-          Hosted by Patrick Henry Sweeney. Get the latest fashion news, dates, and exclusive chatter from worldwide fashion icons.
+        <span className="text-xs uppercase tracking-[0.3em] text-zinc-400 block mb-2 font-medium">A Weekly Fashion Exclusive</span>
+        <h2 className="text-4xl font-serif uppercase tracking-widest mb-4">The Aspen Weekly Report</h2>
+        <p className="text-zinc-500 max-w-2xl mx-auto text-sm leading-relaxed">
+          A single high-distinction fashion podcast episode released once per week by <span className="font-semibold text-zinc-900 border-b border-zinc-200">Patrick H. Sweeney</span>. Experience highly curated commentary on haute couture, upcoming fashion week dates, and critical global style insights.
         </p>
       </div>
 
@@ -146,9 +147,10 @@ export function Podcast() {
             <button
               onClick={generatePodcast}
               className="px-8 py-4 bg-black text-white uppercase tracking-widest text-sm font-medium hover:bg-zinc-800 transition-colors flex items-center gap-2"
+              id="generate-podcast-btn"
             >
               <Mic className="w-4 h-4" />
-              Generate Latest Episode
+              Generate This Week's Episode
             </button>
           )}
 
@@ -175,7 +177,7 @@ export function Podcast() {
                 onClick={generatePodcast}
                 className="text-xs uppercase tracking-widest text-zinc-500 hover:text-black underline underline-offset-4"
               >
-                Generate a new episode
+                Regenerate this week's episode
               </button>
             </div>
           )}

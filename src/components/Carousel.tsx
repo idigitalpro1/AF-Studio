@@ -5,11 +5,13 @@ export interface GalleryItem {
   id: string | number;
   url: string;
   user: string;
+  userId?: string;
   stars: number;
   comments: number;
   commentsList?: string[];
   award?: string;
   quote?: string;
+  tags?: string[];
 }
 
 export function Carousel({ items, setItems, onRemix }: { items: GalleryItem[], setItems: (items: GalleryItem[] | ((prev: GalleryItem[]) => GalleryItem[])) => void, onRemix: (url: string) => void }) {

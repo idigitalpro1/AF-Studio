@@ -15,7 +15,8 @@ import { Runway } from './components/Runway';
 import { MusicPlayer } from './components/MusicPlayer';
 import { Carousel, GalleryItem } from './components/Carousel';
 import { Login } from './components/Login';
-import { Camera, BookOpen, Image as ImageIcon, Mic, Video } from 'lucide-react';
+import { Profile } from './components/Profile';
+import { Camera, BookOpen, Image as ImageIcon, Mic, Video, User } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const INITIAL_GALLERY: GalleryItem[] = [
@@ -26,7 +27,8 @@ const INITIAL_GALLERY: GalleryItem[] = [
     stars: 124,
     comments: 12,
     commentsList: [],
-    quote: '"A masterclass in modern silhouette and daring contrast."'
+    quote: '"A masterclass in modern silhouette and daring contrast."',
+    tags: ['silhouette', 'contrast', 'couture', 'classic']
   },
   {
     id: 2,
@@ -35,7 +37,8 @@ const INITIAL_GALLERY: GalleryItem[] = [
     stars: 89,
     comments: 5,
     commentsList: [],
-    quote: '"Redefining the boundaries of street couture."'
+    quote: '"Redefining the boundaries of street couture."',
+    tags: ['street', 'couture', 'urban', 'chic']
   },
   {
     id: 3,
@@ -44,7 +47,8 @@ const INITIAL_GALLERY: GalleryItem[] = [
     stars: 256,
     comments: 34,
     commentsList: [],
-    quote: '"An absolute triumph of texture and light."'
+    quote: '"An absolute triumph of texture and light."',
+    tags: ['texture', 'light', 'glamour']
   },
   {
     id: 4,
@@ -53,7 +57,8 @@ const INITIAL_GALLERY: GalleryItem[] = [
     stars: 412,
     comments: 56,
     commentsList: [],
-    quote: '"The epitome of avant-garde elegance."'
+    quote: '"The epitome of avant-garde elegance."',
+    tags: ['avant-garde', 'elegance', 'runway', 'futuristic']
   }
 ];
 
@@ -66,6 +71,41 @@ export default function App() {
   const [analysis, setAnalysis] = useState<any | null>(null);
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>(INITIAL_GALLERY);
   const [likedCreations, setLikedCreations] = useState<Set<string | number>>(new Set());
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const handleToggleLike = async (id: string | number) => {
+    if (auth.currentUser) {
+      const { toggleLike } = await import('./lib/db');
+      await toggleLike(id.toString());
+    } else {
+      // Guest mode toggling
+      setLikedCreations(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        try {
+          localStorage.setItem('guest_likes', JSON.stringify(Array.from(next)));
+        } catch (err) {
+          console.error("Failed to save local guest likes:", err);
+        }
+        return next;
+      });
+      // Update isLiked stars count locally in galleryItems state
+      setGalleryItems(prev => prev.map(item => {
+        if (item.id === id) {
+          const isCurrentlyLiked = likedCreations.has(id);
+          return {
+            ...item,
+            stars: isCurrentlyLiked ? Math.max(0, item.stars - 1) : item.stars + 1
+          };
+        }
+        return item;
+      }));
+    }
+  };
 
   // Update the latest gallery item's quote when it becomes available
   useEffect(() => {
@@ -82,9 +122,21 @@ export default function App() {
     }
   }, [coverQuote]);
 
+  // Load guest likes on initialization if offline
+  useEffect(() => {
+    if (isLoggedIn && !auth.currentUser) {
+      try {
+        const guestLikesStr = localStorage.getItem('guest_likes') || '[]';
+        const guestLikes = JSON.parse(guestLikesStr);
+        setLikedCreations(new Set(guestLikes));
+      } catch (err) {
+        console.error("Failed to load local guest likes:", err);
+      }
+    }
+  }, [isLoggedIn]);
+
   useEffect(() => {
     if (!isLoggedIn || !auth.currentUser) {
-      setLikedCreations(new Set());
       return;
     }
 
@@ -115,7 +167,8 @@ export default function App() {
         return {
           id: doc.id,
           url: data.dataUrl,
-          user: 'Aspen Creator', // We could fetch user profile if we had one
+          user: data.userId === auth.currentUser?.uid ? (auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Aspen Creator') : 'Aspen Creator',
+          userId: data.userId,
           stars: data.stars || 0,
           comments: data.comments || 0,
           commentsList: data.commentsList || [],
@@ -143,6 +196,7 @@ export default function App() {
             id: c.id,
             url: c.dataUrl,
             user: 'Aspen Guest',
+            userId: 'guest',
             stars: 0,
             comments: 0,
             commentsList: [],
@@ -164,15 +218,26 @@ export default function App() {
           if (prev.some(item => item.url === newCreation.dataUrl)) {
             return prev;
           }
+          const promptText = (newCreation.prompt || '').toLowerCase();
+          const candidateTags = ['gala', 'vintage', 'avant-garde', 'classic', 'couture', 'gown', 'runway', 'streetwear', 'chic', 'minimalist', 'bold', 'silhouette', 'contrast', 'texture', 'light', 'glamour'];
+          const extracted = candidateTags.filter(tag => {
+            if (tag === 'avant-garde') return promptText.includes('avant-garde') || promptText.includes('avantgarde');
+            if (tag === 'streetwear') return promptText.includes('streetwear') || promptText.includes('street');
+            return promptText.includes(tag);
+          });
+          const finalTags = extracted.length > 0 ? extracted : ['classic', 'couture'];
+
           return [
             {
               id: newCreation.id,
               url: newCreation.dataUrl,
               user: 'Aspen Guest',
+              userId: 'guest',
               stars: 0,
               comments: 0,
               commentsList: [],
-              quote: newCreation.prompt ? `"${newCreation.prompt}"` : undefined
+              quote: newCreation.prompt ? `"${newCreation.prompt}"` : undefined,
+              tags: finalTags
             },
             ...prev
           ];
@@ -189,15 +254,27 @@ export default function App() {
   const handleImageGenerated = (url: string, prompt: string) => {
     setGeneratedImage(url);
     setGeneratedPrompt(prompt);
+    
+    const promptText = prompt.toLowerCase();
+    const candidateTags = ['gala', 'vintage', 'avant-garde', 'classic', 'couture', 'gown', 'runway', 'streetwear', 'chic', 'minimalist', 'bold', 'silhouette', 'contrast', 'texture', 'light', 'glamour'];
+    const extracted = candidateTags.filter(tag => {
+      if (tag === 'avant-garde') return promptText.includes('avant-garde') || promptText.includes('avantgarde');
+      if (tag === 'streetwear') return promptText.includes('streetwear') || promptText.includes('street');
+      return promptText.includes(tag);
+    });
+    const finalTags = extracted.length > 0 ? extracted : ['classic', 'couture'];
+
     setGalleryItems(prev => [
       {
         id: Date.now(),
         url,
-        user: 'Patrick Henry Sweeney',
+        user: auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'Patrick Henry Sweeney') : 'Aspen Guest',
+        userId: auth.currentUser?.uid || 'guest',
         stars: 0,
         comments: 0,
         commentsList: [],
-        quote: coverQuote || undefined
+        quote: coverQuote || undefined,
+        tags: finalTags
       },
       ...prev
     ]);
@@ -228,7 +305,18 @@ export default function App() {
                   ASPEN FASHION
                 </motion.h1>
               </div>
-              <MusicPlayer />
+              <div className="flex items-center gap-4">
+                <MusicPlayer />
+                <button
+                  id="profile-toggle-button"
+                  onClick={() => setIsProfileOpen(true)}
+                  className="flex items-center gap-2 border border-zinc-200 hover:border-zinc-950 rounded-full px-3 py-1.5 transition-colors bg-white shadow-xs text-zinc-700 hover:text-black hover:shadow-sm"
+                  title="View Profile Portfolio"
+                >
+                  <User className="w-4 h-4 text-zinc-650" />
+                  <span className="text-xxs font-bold uppercase tracking-widest hidden xs:inline">Profile</span>
+                </button>
+              </div>
             </div>
           </header>
 
@@ -246,7 +334,14 @@ export default function App() {
               />
             )}
             {activeTab === 'magazine' && <Magazine generatedImage={generatedImage} coverQuote={coverQuote} analysis={analysis} />}
-            {activeTab === 'gallery' && <Gallery items={galleryItems} setItems={setGalleryItems} likedCreations={likedCreations} />}
+            {activeTab === 'gallery' && (
+              <Gallery 
+                items={galleryItems} 
+                setItems={setGalleryItems} 
+                likedCreations={likedCreations} 
+                onToggleLike={handleToggleLike} 
+              />
+            )}
             {activeTab === 'podcast' && <Podcast />}
             {activeTab === 'runway' && <Runway generatedImage={generatedImage} generatedPrompt={generatedPrompt} />}
           </main>
@@ -310,6 +405,18 @@ export default function App() {
               SUBSCRIBE
             </button>
           </footer>
+          
+          <Profile 
+            isOpen={isProfileOpen} 
+            onClose={() => setIsProfileOpen(false)} 
+            galleryItems={galleryItems} 
+            likedCreations={likedCreations} 
+            onToggleLike={handleToggleLike} 
+            onRemix={(url) => {
+              setGeneratedImage(url);
+              setActiveTab('studio');
+            }}
+          />
         </div>
       </div>
     </ApiKeyWrapper>

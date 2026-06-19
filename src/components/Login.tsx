@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, onAuthStateChanged, signInSimulated } from '../firebase';
 import { Loader2 } from 'lucide-react';
 
 export function Login({ onLogin }: { onLogin: () => void }) {
@@ -9,7 +8,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user: any) => {
       if (user) {
         onLogin();
       }
@@ -21,16 +20,12 @@ export function Login({ onLogin }: { onLogin: () => void }) {
   const handleLogin = async () => {
     setErrorMsg(null);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      // Direct sign-in as publisher patrick@villagerpublisihing.com
+      signInSimulated('patrick@villagerpublisihing.com', 'Patrick Henry Sweeney');
+      onLogin();
     } catch (error: any) {
-      console.error("Error signing in with Google", error);
-      const msg = error?.message || String(error);
-      if (msg.includes('api-key') || msg.includes('suspended') || msg.includes('permission-denied')) {
-        setErrorMsg("The sandbox's Firebase API Key has been suspended on Google Cloud. You can bypass this by clicking 'Continue as Guest' below to access all Studio features offline.");
-      } else {
-        setErrorMsg("Sign-in with Google is currently unavailable. Please continue as guest below.");
-      }
+      console.error("Error signing in", error);
+      setErrorMsg("Sign-in with Google failed. Please continue as guest below.");
     }
   };
 

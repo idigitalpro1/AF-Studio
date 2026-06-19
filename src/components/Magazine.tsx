@@ -744,19 +744,24 @@ export function Magazine({ generatedImage, coverQuote, analysis }: { generatedIm
     const renderDefaultMasthead = () => {
       if (selectedMagazine === 'ASPEN FASHION') {
         return (
-          <div className="flex flex-col items-center">
-            <h1 className={`font-serif ${textColor} tracking-tighter font-bold leading-[0.8] ${aspect === 'square' ? 'text-5xl md:text-7xl' : 'text-7xl md:text-[8rem]'}`} style={{ textShadow: mastheadShadow, textAlign: 'center', width: '100%' }}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+            className="flex flex-col items-center w-full"
+          >
+            <h1 className={`font-serif ${textColor} tracking-tight font-bold leading-none ${aspect === 'square' ? 'text-4xl md:text-5xl' : 'text-5xl md:text-6xl'}`} style={{ textShadow: mastheadShadow, textAlign: 'center', width: '100%' }}>
               ASPEN
             </h1>
             <div className={`flex items-center gap-4 ${aspect === 'square' ? 'mt-2' : 'mt-4'} w-full px-8`}>
               <div className={`h-[2px] flex-1 ${isLightPhoto ? 'bg-black/80' : 'bg-white/80'}`} />
-              <h2 className={`font-serif ${textColor} tracking-[0.4em] uppercase font-bold ${aspect === 'square' ? 'text-xl md:text-2xl' : 'text-3xl md:text-4xl'}`} style={{ textShadow: shadow }}>
+              <h2 className={`font-serif ${textColor} tracking-[0.4em] uppercase font-bold ${aspect === 'square' ? 'text-sm md:text-base' : 'text-lg md:text-2xl'}`} style={{ textShadow: shadow }}>
                 FASHION
               </h2>
               <div className={`h-[2px] flex-1 ${isLightPhoto ? 'bg-black/80' : 'bg-white/80'}`} />
             </div>
-            <div className={`${textColor} text-[10px] uppercase tracking-[0.5em] opacity-80 ${aspect === 'square' ? 'mt-2' : 'mt-4'} leading-none`}>BY PATRICK HENRY SWEENEY</div>
-          </div>
+            <div className={`${textColor} text-[9px] uppercase tracking-[0.5em] opacity-80 ${aspect === 'square' ? 'mt-2' : 'mt-4'} leading-none`}>BY PATRICK HENRY SWEENEY</div>
+          </motion.div>
         );
       }
 

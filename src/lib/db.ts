@@ -192,4 +192,34 @@ export async function toggleLike(creationId: string): Promise<boolean> {
   }
 }
 
+export async function addCommentToCreation(creationId: string, commentText: string): Promise<boolean> {
+  if (!auth.currentUser) {
+    console.warn("User must be signed in to comment.");
+    return false;
+  }
+  
+  const creationRef = doc(db, 'creations', creationId);
+  try {
+    const success = await runTransaction(db, async (transaction) => {
+      const docSnap = await transaction.get(creationRef);
+      if (!docSnap.exists()) {
+        throw new Error("Creation does not exist!");
+      }
+      const data = docSnap.data();
+      const currentCommentsCount = data.comments || 0;
+      const currentCommentsList = data.commentsList || [];
+      
+      transaction.update(creationRef, {
+        comments: currentCommentsCount + 1,
+        commentsList: [...currentCommentsList, commentText]
+      });
+      return true;
+    });
+    return success;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `creations/${creationId}`);
+    return false;
+  }
+}
+
 
